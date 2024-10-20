@@ -34,11 +34,11 @@ dynamic = [ "version" ]
 dependencies = [
   "tomli>=2.0.2; python_version<'3.11'",
 ]
-urls.Changelog = "https://github.com/tox-dev/toml-fmt-py-common/releases"
-urls.Documentation = "https://github.com/tox-dev/toml-fmt-py-common#toml-fmt-py-common"
-urls.Homepage = "https://github.com/tox-dev/toml-fmt-py-common"
-urls.Source = "https://github.com/tox-dev/toml-fmt-py-common"
-urls.Tracker = "https://github.com/tox-dev/toml-fmt-py-common/issues"
+urls.Changelog = "https://github.com/tox-dev/toml-fmt-common/releases"
+urls.Documentation = "https://github.com/tox-dev/toml-fmt-common#toml-fmt-common"
+urls.Homepage = "https://github.com/tox-dev/toml-fmt-common"
+urls.Source = "https://github.com/tox-dev/toml-fmt-common"
+urls.Tracker = "https://github.com/tox-dev/toml-fmt-common/issues"
 
 [tool.hatch]
 version.source = "vcs"
@@ -74,7 +74,7 @@ lint.per-file-ignores."tests/**/*.py" = [
   "S603",    # `subprocess` call: check for execution of untrusted input
 ]
 lint.isort = { known-first-party = [
-  "toml_fmt_py_common",
+  "toml_fmt_common",
 ], required-imports = [
   "from __future__ import annotations",
 ] }
