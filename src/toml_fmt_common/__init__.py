@@ -6,7 +6,13 @@ import difflib
 import os
 import sys
 from abc import ABC, abstractmethod
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, ArgumentTypeError, Namespace
+from argparse import (
+    ArgumentDefaultsHelpFormatter,
+    ArgumentParser,
+    ArgumentTypeError,
+    Namespace,
+    _ArgumentGroup,  # noqa: PLC2701
+)
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
@@ -16,12 +22,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
 
 if sys.version_info >= (3, 11):  # pragma: >=3.11 cover
     import tomllib
 else:  # pragma: <3.11 cover
     import tomli as tomllib
+
+ArgumentGroup = _ArgumentGroup
 
 
 class FmtNamespace(Namespace):
@@ -63,7 +71,7 @@ class TOMLFormatter(ABC, Generic[T]):
         raise NotImplementedError
 
     @abstractmethod
-    def add_format_flags(self, parser: ArgumentParser) -> None:
+    def add_format_flags(self, parser: ArgumentGroup) -> None:
         """
          Add any additional flags to configure the formatter.
 
@@ -126,7 +134,7 @@ def _cli_args(info: TOMLFormatter[T], args: Sequence[str]) -> list[_Config[T]]:
     :param args: CLI arguments
     :return: the parsed options
     """
-    parser = _build_cli(info)
+    parser, type_conversion = _build_cli(info)
     parser.parse_args(namespace=info.opt, args=args)
     res = []
     for pyproject_toml in info.opt.inputs:
@@ -144,7 +152,9 @@ def _cli_args(info: TOMLFormatter[T], args: Sequence[str]) -> list[_Config[T]]:
         if isinstance(config, dict):
             for key in set(vars(override_opt).keys()) - {"inputs", "stdout", "check", "no_print_diff"}:
                 if key in config:
-                    setattr(override_opt, key, config[key])
+                    raw = config[key]
+                    converted = type_conversion[key](raw) if key in type_conversion else raw
+                    setattr(override_opt, key, converted)
         res.append(
             _Config(
                 toml_filename=pyproject_toml,
@@ -159,7 +169,7 @@ def _cli_args(info: TOMLFormatter[T], args: Sequence[str]) -> list[_Config[T]]:
     return res
 
 
-def _build_cli(of: TOMLFormatter[T]) -> ArgumentParser:
+def _build_cli(of: TOMLFormatter[T]) -> tuple[ArgumentParser, Mapping[str, Callable[[Any], Any]]]:
     parser = ArgumentParser(
         formatter_class=ArgumentDefaultsHelpFormatter,
         prog=of.prog,
@@ -200,7 +210,8 @@ def _build_cli(of: TOMLFormatter[T]) -> ArgumentParser:
         help="number of spaces to use for indentation",
         metavar="count",
     )
-    of.add_format_flags(format_group)  # type: ignore[arg-type]
+    of.add_format_flags(format_group)
+    type_conversion = {a.dest: a.type for a in format_group._actions if a.type and a.dest}  # noqa: SLF001
     msg = "pyproject.toml file(s) to format, use '-' to read from stdin"
     parser.add_argument(
         "inputs",
@@ -208,7 +219,7 @@ def _build_cli(of: TOMLFormatter[T]) -> ArgumentParser:
         type=partial(_toml_path_creator, of.filename),
         help=msg,
     )
-    return parser
+    return parser, type_conversion
 
 
 def _toml_path_creator(filename: str, argument: str) -> Path | None:
@@ -289,6 +300,7 @@ def _color_diff(diff: Iterable[str]) -> Iterable[str]:
 
 
 __all__ = [
+    "ArgumentGroup",
     "FmtNamespace",
     "TOMLFormatter",
     "run",

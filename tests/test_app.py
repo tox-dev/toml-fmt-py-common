@@ -6,10 +6,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from toml_fmt_common import GREEN, RED, RESET, FmtNamespace, TOMLFormatter, run
+from toml_fmt_common import GREEN, RED, RESET, ArgumentGroup, FmtNamespace, TOMLFormatter, run
 
 if TYPE_CHECKING:
-    from argparse import ArgumentParser
     from pathlib import Path
 
     from pytest_mock import MockerFixture
@@ -17,6 +16,7 @@ if TYPE_CHECKING:
 
 class DumpNamespace(FmtNamespace):
     extra: str
+    tuple_magic: tuple[str, ...]
 
 
 class Dumb(TOMLFormatter[DumpNamespace]):
@@ -35,11 +35,18 @@ class Dumb(TOMLFormatter[DumpNamespace]):
     def override_cli_from_section(self) -> tuple[str, ...]:
         return "start", "sub"
 
-    def add_format_flags(self, parser: ArgumentParser) -> None:  # noqa: PLR6301
+    def add_format_flags(self, parser: ArgumentGroup) -> None:  # noqa: PLR6301
         parser.add_argument("extra", help="this is something extra")
+        parser.add_argument("-t", "--tuple-magic", default=(), type=lambda t: tuple(t.split(".")))
 
     def format(self, text: str, opt: DumpNamespace) -> str:  # noqa: PLR6301
-        return text if os.environ.get("NO_FMT") else f"{text}\nextras = {opt.extra!r}"
+        if os.environ.get("NO_FMT"):
+            return text
+        return "\n".join([
+            text,
+            f"extras = {opt.extra!r}",
+            *([f"magic = {','.join(opt.tuple_magic)!r}"] if opt.tuple_magic else []),
+        ])
 
 
 def test_dumb_help(capsys: pytest.CaptureFixture[str]) -> None:
@@ -74,6 +81,31 @@ def test_dumb_format_with_override(capsys: pytest.CaptureFixture[str], tmp_path:
         " [start.sub]",
         " extra = 'B'",
         f"{GREEN}+extras = 'B'{RESET}",
+    ]
+
+
+def test_dumb_format_with_override_custom_type(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    dumb = tmp_path / "dumb.toml"
+    dumb.write_text("[start.sub]\ntuple_magic = '1.2.3'")
+
+    exit_code = run(Dumb(), ["E", str(dumb)])
+    assert exit_code == 1
+
+    assert dumb.read_text() == "[start.sub]\ntuple_magic = '1.2.3'\nextras = 'E'\nmagic = '1,2,3'"
+
+    out, err = capsys.readouterr()
+    assert not err
+    assert out.splitlines() == [
+        f"{RED}--- {dumb}",
+        f"{RESET}",
+        f"{GREEN}+++ {dumb}",
+        f"{RESET}",
+        "@@ -1,2 +1,4 @@",
+        "",
+        " [start.sub]",
+        " tuple_magic = '1.2.3'",
+        f"{GREEN}+extras = 'E'{RESET}",
+        f"{GREEN}+magic = '1,2,3'{RESET}",
     ]
 
 
