@@ -1,5 +1,5 @@
-# toml-fmt-common
+# toml-fmt-py-common
 
-Contains Python code common to all formatters under the `toml-fmt` umbrella.
+Contains Python code common to all formatters under the `toml-fmt` umbrella (meant to only be used by that project).
 
-[![Test common](https://github.com/tox-dev/toml-fmt/actions/workflows/py-common.yaml/badge.svg)](https://github.com/tox-dev/toml-fmt/actions/workflows/py-common.yaml)
+[![check](https://github.com/tox-dev/toml-fmt-py-common/actions/workflows/check.yaml/badge.svg)](https://github.com/tox-dev/toml-fmt-py-common/actions/workflows/check.yaml)
