@@ -40,6 +40,27 @@ urls.Homepage = "https://github.com/tox-dev/toml-fmt-common"
 urls.Source = "https://github.com/tox-dev/toml-fmt-common"
 urls.Tracker = "https://github.com/tox-dev/toml-fmt-common/issues"
 
+[dependency-groups]
+dev = [
+  { include-group = "test" },
+  { include-group = "type" },
+]
+test = [
+  "covdefaults>=2.3",
+  "pytest>=8.3.2",
+  "pytest-cov>=5",
+  "pytest-mock>=3.14",
+]
+type = [
+  "mypy==1.11.2",
+  { include-group = "test" },
+]
+pkg-meta = [
+  "check-wheel-contents>=0.6",
+  "twine>=5.1.1",
+  "uv>=0.4.17",
+]
+
 [tool.hatch]
 version.source = "vcs"
 
@@ -112,24 +133,3 @@ run.plugins = [
 [tool.mypy]
 show_error_codes = true
 strict = true
-
-[dependency-groups]
-dev = [
-  { include-group = "test" },
-  { include-group = "type" },
-]
-pkg-meta = [
-  "check-wheel-contents>=0.6",
-  "twine>=5.1.1",
-  "uv>=0.4.17",
-]
-test = [
-  "covdefaults>=2.3",
-  "pytest>=8.3.2",
-  "pytest-cov>=5",
-  "pytest-mock>=3.14",
-]
-type = [
-  "mypy==1.11.2",
-  { include-group = "test" },
-]
